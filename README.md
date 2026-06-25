@@ -73,4 +73,4 @@ S.A.M uses a single-key encryption model for development. In production, this ca
 3. **Storage**: Files are stored as `.enc` binaries. Even if storage is breached, data remains unreadable.
 
 ## 📄 License
-MIT License. Built with ❤️ by Antigravity.
+MIT License. Built by P. Sai Krishna Vamsi and team
