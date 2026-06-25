@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, ShieldCheck, Eye, Loader2, KeyRound, AlertCircle, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
-import api from '../services/api'
+import api, { API_BASE_URL } from '../services/api'
 import toast from 'react-hot-toast'
 
 const LockedGateSetup = () => {
@@ -171,7 +171,7 @@ const LockedGateSetup = () => {
                            You are logged in with Google. <br /> Authorize reset by re-authenticating with Google Protocol.
                         </p>
                         <button 
-                          onClick={() => window.location.href = 'http://localhost:8000/api/auth/google'}
+                          onClick={() => window.location.href = `${API_BASE_URL}/api/auth/google`}
                           className="w-full glass-card hover:bg-white/10 flex items-center justify-center gap-4 py-6 rounded-3xl font-black text-[11px] uppercase tracking-widest transition-all border-white/10"
                         >
                           <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />

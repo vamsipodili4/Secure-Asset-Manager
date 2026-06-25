@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { LogIn, Loader2, UserPlus, ShieldCheck, ChevronRight, Eye } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { Link } from 'react-router-dom'
-import api from '../services/api'
+import api, { API_BASE_URL } from '../services/api'
 
 const Login = () => {
   const [isRegister, setIsRegister] = useState(false)
@@ -25,7 +25,7 @@ const Login = () => {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8000/api/auth/google'
+    window.location.href = `${API_BASE_URL}/api/auth/google`
   }
 
   const handleAuth = async (e: React.FormEvent) => {

@@ -46,9 +46,9 @@ export class StorageService {
     const chunks: Buffer[] = [];
 
     return new Promise((resolve, reject) => {
-      downloadStream.on('data', (chunk) => chunks.push(chunk));
-      downloadStream.on('error', reject);
-      downloadStream.on('end', () => {
+      (downloadStream as any).on('data', (chunk: Buffer) => chunks.push(chunk));
+      (downloadStream as any).on('error', reject);
+      (downloadStream as any).on('end', () => {
         const encryptedData = Buffer.concat(chunks);
         resolve(EncryptionService.decrypt(encryptedData, iv, authTag));
       });
