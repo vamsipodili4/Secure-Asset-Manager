@@ -35,8 +35,8 @@ export const register = async (req: Request, res: Response) => {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: true,
+      sameSite: 'none'
     });
 
     res.status(201).json({
@@ -92,8 +92,8 @@ export const login = async (req: Request, res: Response) => {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: true,
+      sameSite: 'none'
     });
 
     res.json({
@@ -109,7 +109,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const googleAuthCallback = (req: Request, res: Response) => {
   if (!req.user) {
-    return res.status(401).redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+    return res.status(401).redirect(`${ (process.env.CLIENT_URL || 'https://mini-project-fawn-pi.vercel.app') }/login?error=auth_failed`);
   }
 
   const user = req.user as any;
@@ -118,11 +118,11 @@ export const googleAuthCallback = (req: Request, res: Response) => {
   // Set token in cookie
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    secure: true,
+    sameSite: 'none'
   });
 
-  res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+  res.redirect(`${ (process.env.CLIENT_URL || 'https://mini-project-fawn-pi.vercel.app') }/dashboard`);
 };
 
 export const getMe = async (req: Request, res: Response) => {
