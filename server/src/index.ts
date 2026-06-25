@@ -44,6 +44,11 @@ app.get('/', (req: Request, res: Response) => {
   res.send('S.A.M API is running...');
 });
 
+// Health Check for Render
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 import authRoutes from './routes/authRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
 import './config/passport.js';
@@ -55,8 +60,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetRoutes);
 // app.use('/api/admin', adminRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
-app.listen(PORT, () => {
+// Global Error Handlers to prevent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
