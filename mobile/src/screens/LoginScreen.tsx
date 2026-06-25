@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert, Platform } from 'react-native';
-import { Shield, Fingerprint, Lock, ShieldCheck } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { Shield, Fingerprint, Lock, ShieldCheck, Mail, Key, LogIn } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const LoginScreen = ({ navigation }: any) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const { signIn } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -15,73 +21,128 @@ const LoginScreen = ({ navigation }: any) => {
     })();
   }, []);
 
+  const handleNormalLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Protocol Error', 'Access denied. Please provide full credentials.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { token, user } = response.data;
+      await signIn(token, user);
+      navigation.navigate('Dashboard');
+    } catch (error: any) {
+      Alert.alert('Authentication Failed', error.response?.data?.message || 'Server connection error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    Alert.alert('Protocol Redirect', 'Initializing Google Secure Handshake...');
+    // Implementation would require expo-auth-session
+    // Placeholder for actual redirect
+  };
+
   const handleBiometricAuth = async () => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Authenticate to access S.A.M Vault',
-        fallbackLabel: 'Use Passcode',
-        disableDeviceFallback: false,
+        promptMessage: 'Authorize S.A.M Vault Entry',
+        fallbackLabel: 'Use Command Code',
       });
 
       if (result.success) {
         navigation.navigate('Dashboard');
-      } else {
-        Alert.alert('Security Alert', 'Authentication failed. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected security error occurred.');
+      Alert.alert('Security Breach', 'Biometric validation failed.');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#020617', '#0f172a', '#020617']}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoGlow} />
-            <View style={styles.logo}>
-              <ShieldCheck size={48} color="#fff" strokeWidth={2.5} />
-            </View>
-            <Text style={styles.title}>S.A.M</Text>
-            <Text style={styles.subtitle}>SECURE ASSET MANAGER</Text>
-            <View style={styles.badge}>
-               <Text style={styles.badgeText}>AES-256 ENCRYPTED</Text>
-            </View>
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate('Dashboard')}
-            >
-              <View style={styles.buttonIcon}>
-                 <Shield size={18} color="#0ea5e9" />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <LinearGradient
+          colors={['#020617', '#0f172a', '#020617']}
+          style={styles.gradient}
+        >
+          <View style={styles.content}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoGlow} />
+              <View style={styles.logo}>
+                <ShieldCheck size={44} color="#fff" strokeWidth={2.5} />
               </View>
-              <Text style={styles.buttonText}>Authorize with Secure Cloud</Text>
-            </TouchableOpacity>
+              <Text style={styles.title}>S.A.M</Text>
+              <Text style={styles.subtitle}>SECURE ASSET MANAGER</Text>
+            </View>
 
-            {isBiometricAvailable && (
+            <View style={styles.formContainer}>
+              <View style={styles.inputWrapper}>
+                <Mail size={18} color="#64748b" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="AGENT EMAIL"
+                  placeholderTextColor="#475569"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.inputWrapper}>
+                <Key size={18} color="#64748b" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="COMMAND PASSCODE"
+                  placeholderTextColor="#475569"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+
               <TouchableOpacity 
-                style={styles.secondaryButton}
-                onPress={handleBiometricAuth}
+                style={[styles.primaryButton, loading && { opacity: 0.7 }]}
+                onPress={handleNormalLogin}
+                disabled={loading}
               >
-                <Fingerprint size={24} color="#fff" />
-                <Text style={[styles.buttonText, { marginLeft: 12 }]}>Unlock via Biometrics</Text>
+                {loading ? <ActivityIndicator color="#020617" /> : (
+                  <>
+                    <LogIn size={20} color="#020617" />
+                    <Text style={styles.buttonText}>Authenticate User</Text>
+                  </>
+                )}
               </TouchableOpacity>
-            )}
-          </View>
 
-          <View style={styles.footer}>
-             <Lock size={12} color="#475569" style={{ marginBottom: 4 }} />
-             <Text style={styles.footerText}>
-               YOUR VAULT IS PROTECTED BY ZERO-KNOWLEDGE SECURITY
-             </Text>
+              <TouchableOpacity 
+                style={styles.googleButton}
+                onPress={handleGoogleLogin}
+              >
+                <Text style={styles.googleButtonText}>Continue with Google Secure ID</Text>
+              </TouchableOpacity>
+
+              {isBiometricAvailable && (
+                <TouchableOpacity 
+                  style={styles.biometricButton}
+                  onPress={handleBiometricAuth}
+                >
+                  <Fingerprint size={24} color="#0ea5e9" />
+                  <Text style={styles.biometricText}>Quick Access via Biometrics</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.footer}>
+              <Lock size={12} color="#475569" style={{ marginBottom: 4 }} />
+              <Text style={styles.footerText}>
+                AES-256 ZERO-KNOWLEDGE PROTOCOL ACTIVE
+              </Text>
+            </View>
           </View>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -96,117 +157,129 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 30,
+    paddingHorizontal: 32,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 80,
+    marginBottom: 48,
   },
   logoGlow: {
      position: 'absolute',
-     width: 120,
-     height: 120,
+     width: 100,
+     height: 100,
      backgroundColor: '#0284c7',
-     borderRadius: 60,
-     opacity: 0.15,
+     borderRadius: 50,
+     opacity: 0.2,
+     top: -10,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     backgroundColor: '#0284c7',
-    borderRadius: 30,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 20,
     shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.4,
-    shadowRadius: 25,
-    elevation: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 10,
   },
   title: {
     color: '#fff',
-    fontSize: 42,
+    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: 4,
+    letterSpacing: 6,
   },
   subtitle: {
-    color: '#94a3b8',
-    fontSize: 12,
-    marginTop: 8,
-    fontWeight: 'bold',
-    letterSpacing: 2,
+    color: '#64748b',
+    fontSize: 10,
+    marginTop: 6,
+    fontWeight: '700',
+    letterSpacing: 3,
   },
-  badge: {
-     marginTop: 20,
-     backgroundColor: 'rgba(14, 165, 233, 0.1)',
-     paddingHorizontal: 12,
-     paddingVertical: 4,
-     borderRadius: 6,
-     borderWidth: 1,
-     borderColor: 'rgba(14, 165, 233, 0.2)',
-  },
-  badgeText: {
-     color: '#0ea5e9',
-     fontSize: 10,
-     fontWeight: '900',
-  },
-  buttonContainer: {
+  formContainer: {
     width: '100%',
     gap: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 16,
+    height: 60,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   primaryButton: {
     width: '100%',
     backgroundColor: '#fff',
     flexDirection: 'row',
-    height: 64,
-    borderRadius: 20,
+    height: 60,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  secondaryButton: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    flexDirection: 'row',
-    height: 64,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonIcon: {
-     width: 32,
-     height: 32,
-     backgroundColor: '#f1f5f9',
-     borderRadius: 10,
-     justifyContent: 'center',
-     alignItems: 'center',
-     marginRight: 12,
+    marginTop: 8,
+    gap: 10,
   },
   buttonText: {
     color: '#020617',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  googleButton: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  googleButtonText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 12,
+  },
+  biometricText: {
+    color: '#0ea5e9',
+    fontSize: 13,
+    fontWeight: '700',
   },
   footer: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 40,
+    left: 0,
+    right: 0,
     alignItems: 'center',
   },
   footerText: {
-    color: '#475569',
-    fontSize: 9,
-    fontWeight: 'bold',
-    letterSpacing: 1,
+    color: '#334155',
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 2,
   },
 });
 

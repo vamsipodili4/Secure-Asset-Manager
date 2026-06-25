@@ -1,22 +1,52 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
-import { FileText, Image as ImageIcon, Video, File, Upload, Share2 } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { FileText, Image as ImageIcon, Video, File, Upload, Share2, LogOut, Shield } from 'lucide-react-native';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
-const DashboardScreen = () => {
+const DashboardScreen = ({ navigation }: any) => {
+  const { user, signOut } = useAuth();
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await api.get('/assets/analytics');
+      setAnalytics(response.data);
+    } catch (error) {
+      console.error('Failed to fetch analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigation.navigate('Login');
+  };
+
   const stats = [
-    { title: 'Total', value: '1.2k', color: '#3b82f6' },
-    { title: 'Storage', value: '45GB', color: '#10b981' },
-    { title: 'Shared', value: '24', color: '#8b5cf6' },
-  ];
-
-  const recentAssets = [
-    { id: '1', name: 'Confidential_Q3.pdf', type: 'PDF', time: '2h ago' },
-    { id: '2', name: 'Launch_Video.mp4', type: 'Video', time: '5h ago' },
-    { id: '3', name: 'User_Research.doc', type: 'Doc', time: 'Yesterday' },
+    { title: 'Assets', value: loading ? '...' : analytics?.totalAssets || '0', color: '#0ea5e9' },
+    { title: 'Storage', value: loading ? '...' : `${(analytics?.totalStorage / (1024 * 1024)).toFixed(1)}MB`, color: '#10b981' },
+    { title: 'Integrity', value: loading ? '...' : `${analytics?.healthScore || '100'}%`, color: '#8b5cf6' },
   ];
 
   return (
     <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.welcomeText}>WELCOME, AGENT</Text>
+          <Text style={styles.userName}>{user?.name?.toUpperCase() || 'UNKNOWN'}</Text>
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <LogOut size={20} color="#64748b" />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.statsContainer}>
         {stats.map((stat, index) => (
           <View key={index} style={styles.statCard}>
@@ -27,28 +57,16 @@ const DashboardScreen = () => {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Assets</Text>
+        <Text style={styles.sectionTitle}>Secure Archives</Text>
         <TouchableOpacity>
-          <Text style={styles.seeAll}>See All</Text>
+          <Text style={styles.seeAll}>ACCESS VAULT</Text>
         </TouchableOpacity>
       </View>
 
-      {recentAssets.map((item) => (
-        <View key={item.id} style={styles.assetItem}>
-          <View style={styles.assetIcon}>
-            {item.type === 'PDF' ? <FileText size={20} color="#94a3b8" /> : 
-             item.type === 'Video' ? <Video size={20} color="#94a3b8" /> : 
-             <File size={20} color="#94a3b8" />}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.assetName}>{item.name}</Text>
-            <Text style={styles.assetTime}>{item.time}</Text>
-          </View>
-          <TouchableOpacity>
-            <Share2 size={18} color="#475569" />
-          </TouchableOpacity>
-        </View>
-      ))}
+      <View style={styles.infoBox}>
+         <Shield size={16} color="#0ea5e9" />
+         <Text style={styles.infoText}>Quantum-resistant encryption active on all packets.</Text>
+      </View>
 
       <TouchableOpacity style={styles.fab}>
         <Upload size={24} color="#fff" />
@@ -63,6 +81,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#020617',
     padding: 20,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 32,
+    marginTop: 10,
+  },
+  welcomeText: {
+    color: '#64748b',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
+  userName: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  logoutBtn: {
+    padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+  },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -72,78 +114,72 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     borderRadius: 16,
     padding: 15,
-    width: '30%',
+    width: '31%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   statLabel: {
     color: '#64748b',
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: '800',
     marginBottom: 5,
+    textTransform: 'uppercase',
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '900',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    marginTop: 10,
   },
   sectionTitle: {
     color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   seeAll: {
-    color: '#0284c7',
-    fontSize: 14,
+    color: '#0ea5e9',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  assetItem: {
+  infoBox: {
+    backgroundColor: 'rgba(14, 165, 233, 0.05)',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.1)',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#1e293b',
+    gap: 12,
   },
-  assetIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  assetName: {
-    color: '#f1f5f9',
-    fontSize: 14,
-    fontWeight: 'medium',
-  },
-  assetTime: {
-    color: '#64748b',
+  infoText: {
+    color: '#94a3b8',
     fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
   },
   fab: {
     position: 'absolute',
     bottom: 20,
     right: 0,
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     backgroundColor: '#0284c7',
-    borderRadius: 30,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 15,
+    elevation: 8,
   },
 });
 
